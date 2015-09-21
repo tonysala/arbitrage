@@ -126,7 +126,11 @@ class Market
             $dateString = $col->nodeValue;
             if (preg_match('/^[a-z]+ ([0-9]{1,2})[a-z]{2} ([a-z]+) ([0-9]{4})/i', $dateString, $datePieces)) {
                 $date = new \DateTime(null, new \DateTimeZone('Europe/London'));
-                $date->setDate($datePieces[3], date('m', strtotime($datePieces[2])), $datePieces[1]);
+                $year = $datePieces[3];
+                $month = date('m', strtotime($datePieces[2]));
+                $day = $datePieces[1];
+                $date->setDate($year, $month, $day);
+                $date->setTime(0, 0, 0);
                 $this->changeDate($date);
             }
         }
