@@ -1,4 +1,4 @@
-<?php namespace Arbitrage;
+<?php namespace Tronfo\Arbitrage;
 
 class Match
 {
