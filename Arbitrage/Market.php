@@ -37,6 +37,12 @@ class Market
             $stmt->bindParam(':url', $marketUrl);
             $stmt->execute();
             $id = Arbitrage::$pdo->lastInsertId();
+        } else {
+            $stmt = Arbitrage::$pdo->prepare('UPDATE markets (name, url) VALUES (:name, :url) WHERE id = :id');
+            $stmt->bindParam(':name', $this->name);
+            $stmt->bindParam(':url', $marketUrl);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
         }
 
         $this->id = $id;
@@ -66,7 +72,7 @@ class Market
         }
     }
 
-    public function getMatchFromRow($row)
+    public function getMatchFromRow(\DOMNode $row)
     {
         /**
          * @var \DOMNodeList $cols

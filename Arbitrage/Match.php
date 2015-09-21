@@ -91,6 +91,7 @@ class Match
 
     public function setTime($hour, $min = 0, $sec = 0)
     {
+        print $this->teamA . $hour . ':' . $min .PHP_EOL;
         $this->date->setTime($hour, $min, $sec);
     }
 
