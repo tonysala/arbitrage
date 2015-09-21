@@ -137,7 +137,6 @@ class Arbitrage
         $oddsALength = $this->getMaxLength($this->updated, 'odds', 4, $callbackA);
         $stakeBLength = $this->getMaxLength($this->updated, 'stake', 4, $callbackB);
         $oddsBLength = $this->getMaxLength($this->updated, 'odds', 4, $callbackB);
-
         $lines = [];
         $head = true;
 
@@ -206,7 +205,7 @@ class Arbitrage
             if (is_callable($callback)) {
                 $length = strlen(call_user_func_array($callback, [$arrayItem, $property, $callbackArgs]));
             } else {
-                $length = strlen($property);
+                $length = strlen($arrayItem->$property);
             }
 
             if ($length > $maxLength) {
