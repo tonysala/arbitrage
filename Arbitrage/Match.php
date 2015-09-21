@@ -102,7 +102,7 @@ class Match
 
     public function isPreMatch()
     {
-        if ($this->date < new \DateTime('now')) {
+        if ($this->date < new \DateTime('now', new \DateTimeZone('Europe/London'))) {
             return false;
         }
         return true;
