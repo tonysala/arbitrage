@@ -99,6 +99,14 @@ class Match
         $this->link = "<a href='http://www.oddschecker.com{$link}'>{$link}</a>";
     }
 
+    public function isPreMatch()
+    {
+        if ($this->date < new \DateTime('now')) {
+            return false;
+        }
+        return true;
+    }
+
     public function setMarket($market)
     {
         $this->market = $market;

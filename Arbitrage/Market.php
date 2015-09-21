@@ -111,7 +111,7 @@ class Market
             $this->date->setTime((int)$hour, (int)$min, 0);
             $match->setDate($this->date);
             $match->setLink($link);
-            if ($match->isArbitrable()) {
+            if ($match->isArbitrable() && $match->isPreMatch()) {
                 return $match;
             }
         } elseif ($cols->length === 1) {
