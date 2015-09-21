@@ -115,7 +115,7 @@ class Market
                 return false;
             }
             $this->currentDate->setTime((int)$hour, (int)$min, 0);
-            print "$hour:$min {$this->currentData->format('H:i')} $teamA v $teamB\n";
+            print "$hour:$min {$this->currentDate->format('H:i')} $teamA v $teamB\n";
             $match->setDate($this->currentDate);
             $match->setLink($link);
             if ($match->isArbitrable() && $match->isPreMatch()) {
