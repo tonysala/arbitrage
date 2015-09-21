@@ -121,7 +121,9 @@ class Arbitrage
     {
         $updatedCount = count($this->updated);
 
-        $timeLength = $this->getMaxLength($this->updated, 'time', 4);
+        $dateLength = $this->getMaxLength($this->updated, 'date', 4, function(\DateTime $item, $property, $args = []) {
+            return $item->format('d/m/Y H:i');
+        });
         $teamALength = $this->getMaxLength($this->updated, 'teamA', 4);
         $teamBLength = $this->getMaxLength($this->updated, 'teamB', 4);
         $marketLength = $this->getMaxLength($this->updated, 'market', 4);
@@ -142,7 +144,7 @@ class Arbitrage
 
         foreach ($this->updated as $updated) {
             $cols = [];
-            $cols[] = $this->padToLength($updated->date->format('d/m/Y H:i'), $timeLength);
+            $cols[] = $this->padToLength($updated->date->format('d/m/Y H:i'), $dateLength);
             $cols[] = $this->padToLength($updated->teamA, $teamALength);
             $cols[] = $this->padToLength($updated->teamB, $teamBLength);
             $cols[] = $this->padToLength($updated->market, $marketLength);
