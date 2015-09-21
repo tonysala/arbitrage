@@ -23,10 +23,9 @@ class Market
 
     public function __construct($marketName, $marketUrl)
     {
-        $this->name = $marketName;
-        $this->url = $marketUrl;
+        $this->name = end(explode('/', $marketUrl));
 
-        $stmt = Arbitrage::$pdo->prepare('SELECT id FROM markets WHERE name = :market_name AND url = :market_url');
+        $stmt = Arbitrage::$pdo->prepare('SELECT id FROM markets WHERE url = :market_url');
         $stmt->bindParam(':market_name', $marketName);
         $stmt->bindParam(':market_url', $marketUrl);
         $stmt->execute();
@@ -34,7 +33,7 @@ class Market
 
         if ($id === false) {
             $stmt = Arbitrage::$pdo->prepare('INSERT INTO markets (name, url) VALUES (:name, :url)');
-            $stmt->bindParam(':name', $marketName);
+            $stmt->bindParam(':name', $this->name);
             $stmt->bindParam(':url', $marketUrl);
             $stmt->execute();
             $id = Arbitrage::$pdo->lastInsertId();
