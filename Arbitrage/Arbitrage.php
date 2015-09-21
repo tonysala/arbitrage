@@ -1,5 +1,7 @@
 <?php namespace Tronfo\Arbitrage;
 
+use \cURL\RequestsQueue;
+
 class Arbitrage
 {
     /**
@@ -22,37 +24,28 @@ class Arbitrage
 
     public function run($stake = 100)
     {
-        /**
+        $marketName = '';
+        $endpoint = '';
+
         // Init queue of requests
-        $queue = new \cURL\RequestsQueue;
-// Set default options for all requests in queue
-        $queue->getDefaultOptions()
-            ->set(CURLOPT_TIMEOUT, 5)
-            ->set(CURLOPT_RETURNTRANSFER, true);
-// Set function to be executed when request will be completed
-        $queue->addListener('complete', function (\cURL\Event $event) {
+        $queue = new RequestsQueue;
+
+        // Set default options for all requests in queue
+        $opts = $queue->getDefaultOptions();
+        $opts->set(CURLOPT_TIMEOUT, 5);
+        $opts->set(CURLOPT_RETURNTRANSFER, true);
+
+        // Set function to be executed when request will be completed
+        $queue->addListener('complete', function (\cURL\Event $event) use ($marketName, $endpoint, $stake) {
+            dd($event);
             $response = $event->response;
-            $json = $response->getContent(); // Returns content of response
-            $feed = json_decode($json, true);
-            echo $feed['entry']['title']['$t'] . "\n";
-        });
+            $html = $response->getContent(); // Returns content of response
 
-        $request = new \cURL\Request('http://gdata.youtube.com/feeds/api/videos/XmSdTa9kaiQ?v=2&alt=json');
-// Add request to queue
-        $queue->attach($request);
-
-        $request = new \cURL\Request('http://gdata.youtube.com/feeds/api/videos/6dC-sm5SWiU?v=2&alt=json');
-        $queue->attach($request);
-
-// Execute queue
-        $queue->send();
-        */
-        foreach ($this->endpoints as $marketName => $endpoint) {
             $market = new Market($marketName, $endpoint);
 
             $market->stake = $stake;
 
-            $market->loadHtml($endpoint);
+            $market->setHtml($html);
             $market->loadDOM();
 
             self::$markets[$marketName] = $market;
@@ -66,9 +59,20 @@ class Arbitrage
                     $this->matches[] = $match;
                 }
             }
+
+        });
+
+        foreach ($this->endpoints as $marketName => $endpoint) {
+            $request = new \cURL\Request($endpoint);
+            // Add request to queue
+            $queue->attach($request);
         }
 
-        $this->sortByPercentage();
+        // Execute queue
+        while ($queue->socketPerform()) {
+            $queue->socketSelect();
+        }
+
         return $this->updated;
     }
 
