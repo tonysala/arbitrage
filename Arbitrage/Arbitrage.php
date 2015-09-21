@@ -20,7 +20,7 @@ class Arbitrage
         self::$pdo = new \PDO($dbString, $dbUser, $dbPass);
     }
 
-    public function run()
+    public function run($stake = 100)
     {
         /**
         // Init queue of requests
@@ -50,7 +50,7 @@ class Arbitrage
         foreach ($this->endpoints as $marketName => $endpoint) {
             $market = new Market($marketName, $endpoint);
 
-            $market->stake = 500;
+            $market->stake = $stake;
 
             $market->loadHtml($endpoint);
             $market->loadDOM();
