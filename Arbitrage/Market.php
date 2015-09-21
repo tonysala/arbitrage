@@ -1,4 +1,4 @@
-<?php
+<?php namespace Arbitrage;
 
 class Market
 {
@@ -17,7 +17,7 @@ class Market
     public $url;
 
     /**
-     * @var DateTime $date
+     * @var \DateTime $date
      */
     protected $date;
 
@@ -57,7 +57,7 @@ class Market
     public function loadDOM()
     {
         if (!empty($this->html)) {
-            $dom = new DOMDocument;
+            $dom = new \DOMDocument;
 
             libxml_use_internal_errors(true);
             $dom->loadHTML($this->html);
@@ -76,7 +76,7 @@ class Market
     public function getMatchFromRow($row)
     {
         /**
-         * @var DOMNodeList $cols
+         * @var \DOMNodeList $cols
          */
         $cols = $row->childNodes;
         if ($cols->length >= 5) {
@@ -125,7 +125,7 @@ class Market
             $col = $cols->item(0);
             $dateString = $col->nodeValue;
             if (preg_match('/^[a-z]+ ([0-9]{1,2})[a-z]{2} ([a-z]+) ([0-9]{4})/i', $dateString, $datePieces)) {
-                $date = new DateTime;
+                $date = new \DateTime;
                 $date->setDate($datePieces[3], date('m', strtotime($datePieces[2])), $datePieces[1]);
                 $this->changeDate($date);
             }

@@ -1,4 +1,4 @@
-<?php
+<?php namespace Arbitrage;
 
 class Arbitrage
 {
@@ -17,7 +17,7 @@ class Arbitrage
 
     public function __construct($dbString = '', $dbUser = '', $dbPass = '')
     {
-        self::$pdo = new PDO($dbString, $dbUser, $dbPass);
+        self::$pdo = new \PDO($dbString, $dbUser, $dbPass);
     }
 
     public function run()
