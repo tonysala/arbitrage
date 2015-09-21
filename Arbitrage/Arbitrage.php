@@ -62,14 +62,14 @@ class Arbitrage
                 if ($match !== false) {
                     if ($match->checkPriceShift() === true) {
                         $this->updated[] = $match;
-                    } else {
-                        $this->matches[] = $match;
                     }
+                    $this->matches[] = $match;
                 }
             }
         }
 
         $this->sortByPercentage();
+        return $this->updated;
     }
 
     public function sortByPercentage()
@@ -119,14 +119,14 @@ class Arbitrage
 
     public function notify()
     {
-        $updatedCount = count($this->updated);
+        $matchesCount = count($this->matches);
 
-        $dateLength = $this->getMaxLength($this->updated, 'date', 11, function($item, $property, $args = []) {
+        $dateLength = $this->getMaxLength($this->matches, 'date', 11, function($item, $property, $args = []) {
             return $item->$property->format('d/m/Y H:i');
         });
-        $teamALength = $this->getMaxLength($this->updated, 'teamA', 6);
-        $teamBLength = $this->getMaxLength($this->updated, 'teamB', 6);
-        $marketLength = $this->getMaxLength($this->updated, 'market', 6);
+        $teamALength = $this->getMaxLength($this->matches, 'teamA', 6);
+        $teamBLength = $this->getMaxLength($this->matches, 'teamB', 6);
+        $marketLength = $this->getMaxLength($this->matches, 'market', 6);
 
         $callbackA = function ($item, $property, $args = []) {
             return $item->outcomeA->$property;
@@ -149,43 +149,43 @@ class Arbitrage
             return $item->outcomeB->minStake . ' - ' . $item->outcomeB->stake . ' - ' . $item->outcomeB->maxStake;
         };
 
-        $stakeALength = $this->getMaxLength($this->updated, 'stake', 29, $stakeCallbackA);
-        $stakeBLength = $this->getMaxLength($this->updated, 'stake', 29, $stakeCallbackB);
-        $profitALength = $this->getMaxLength($this->updated, 'profit', 24, $profitCallbackA);
-        $profitBLength = $this->getMaxLength($this->updated, 'profit', 24, $profitCallbackB);
-        $oddsALength = $this->getMaxLength($this->updated, 'odds', 11, $callbackA);
-        $oddsBLength = $this->getMaxLength($this->updated, 'odds', 11, $callbackB);
+        $stakeALength = $this->getMaxLength($this->matches, 'stake', 29, $stakeCallbackA);
+        $stakeBLength = $this->getMaxLength($this->matches, 'stake', 29, $stakeCallbackB);
+        $profitALength = $this->getMaxLength($this->matches, 'profit', 24, $profitCallbackA);
+        $profitBLength = $this->getMaxLength($this->matches, 'profit', 24, $profitCallbackB);
+        $oddsALength = $this->getMaxLength($this->matches, 'odds', 11, $callbackA);
+        $oddsBLength = $this->getMaxLength($this->matches, 'odds', 11, $callbackB);
 
 
         $lines = [];
         $head = true;
 
         $headSeparator = '';
-        foreach ($this->updated as $updated) {
+        foreach ($this->matches as $matches) {
             $cols = [];
-            $cols[] = $this->padToLength($updated->date->format('d/m/Y H:i'), $dateLength);
-            $cols[] = $this->padToLength($updated->teamA, $teamALength);
-            $cols[] = $this->padToLength($updated->teamB, $teamBLength);
-            $cols[] = $this->padToLength($updated->market, $marketLength);
+            $cols[] = $this->padToLength($matches->date->format('d/m/Y H:i'), $dateLength);
+            $cols[] = $this->padToLength($matches->teamA, $teamALength);
+            $cols[] = $this->padToLength($matches->teamB, $teamBLength);
+            $cols[] = $this->padToLength($matches->market, $marketLength);
 
             $cols[] = $this->padToLength(
-                $updated->outcomeA->minStake . ' - ' . $updated->outcomeA->stake . ' - ' . $updated->outcomeA->maxStake,
+                $matches->outcomeA->minStake . ' - ' . $matches->outcomeA->stake . ' - ' . $matches->outcomeA->maxStake,
                 $stakeALength);
 
             $cols[] = $this->padToLength(
-                $updated->outcomeB->minStake . ' - ' . $updated->outcomeB->stake . ' - ' . $updated->outcomeB->maxStake,
+                $matches->outcomeB->minStake . ' - ' . $matches->outcomeB->stake . ' - ' . $matches->outcomeB->maxStake,
                 $stakeBLength);
 
             $cols[] = $this->padToLength(
-                $updated->outcomeA->profit . ' -> ' . $updated->outcomeA->maxProfit,
+                $matches->outcomeA->profit . ' -> ' . $matches->outcomeA->maxProfit,
                 $profitALength);
 
             $cols[] = $this->padToLength(
-                $updated->outcomeB->profit . ' -> ' . $updated->outcomeB->maxProfit,
+                $matches->outcomeB->profit . ' -> ' . $matches->outcomeB->maxProfit,
                 $profitBLength);
 
-            $cols[] = $this->padToLength($updated->outcomeA->odds, $oddsALength);
-            $cols[] = $this->padToLength($updated->outcomeB->odds, $oddsBLength);
+            $cols[] = $this->padToLength($matches->outcomeA->odds, $oddsALength);
+            $cols[] = $this->padToLength($matches->outcomeB->odds, $oddsBLength);
 
             if ($head === true) {
                 $headSeparator = '+';
@@ -216,20 +216,20 @@ class Arbitrage
         }
         $lines[] = $headSeparator;
 
-        $updated = implode(PHP_EOL, $lines);
+        $matches = implode(PHP_EOL, $lines);
 
-        if ($updatedCount > 0) {
+        if ($matchesCount > 0) {
             $toEmail = 'tony@hallnet.co.uk';
-            $subject = "$updatedCount Arbitrage opportunities ({$this->updated[0]->percent}%)";
+            $subject = "$matchesCount Arbitrage opportunities ({$this->matches[0]->percent}%)";
             $message = "<span style='font-family: Monaco, \"Lucida Console\", monospace; font-size:12px'>";
-            $message .= "Biggest margin   [{$this->updated[0]->percent}%] : {$this->updated[0]->teamA} v {$this->updated[0]->teamB} ({$this->updated[0]->market})";
+            $message .= "Biggest margin   [{$this->matches[0]->percent}%] : {$this->matches[0]->teamA} v {$this->matches[0]->teamB} ({$this->matches[0]->market})";
             $message .= PHP_EOL;
             $this->sortByPositiveChange();
-            $message .= "Biggest + change [{$this->updated[0]->percentChange}%] : {$this->updated[0]->teamA} v {$this->updated[0]->teamB} ({$this->updated[0]->market})";
+            $message .= "Biggest + change [{$this->matches[0]->percentChange}%] : {$this->matches[0]->teamA} v {$this->matches[0]->teamB} ({$this->matches[0]->market})";
             $message .= PHP_EOL . PHP_EOL;
             $message .= '------------------------' . PHP_EOL . PHP_EOL;
             $message .= 'UPDATED:' . PHP_EOL;
-            $message .= $updated;
+            $message .= $matches;
             $message .= PHP_EOL . PHP_EOL;
             $message .= '</span>';
             $message .= PHP_EOL;
@@ -244,7 +244,7 @@ class Arbitrage
             $email->Body = $message;
             $email->isHTML(true);
             $email->AddAddress($toEmail);
-            file_put_contents(__DIR__ . '/output.txt', $updated);
+            file_put_contents(__DIR__ . '/output.txt', $matches);
 
             $email->AddAttachment(__DIR__ . '/output.txt', 'output.txt');
 
