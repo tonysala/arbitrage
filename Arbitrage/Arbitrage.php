@@ -205,6 +205,9 @@ class Arbitrage
                 $headCols[] = $this->padToLength('Team B profit (eq / max)', $profitBLength);
                 $headCols[] = $this->padToLength('Team A odds', $oddsALength);
                 $headCols[] = $this->padToLength('Team B odds', $oddsBLength);
+                $headLine = '| ' . implode(' | ', $headCols) . ' |';
+                $lines[] = $headLine;
+                $lines[] = $headSeparator;
 
                 $head = false;
             }
