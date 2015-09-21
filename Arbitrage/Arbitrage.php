@@ -34,6 +34,10 @@ class Arbitrage
         $opts = $queue->getDefaultOptions();
         $opts->set(CURLOPT_TIMEOUT, 5);
         $opts->set(CURLOPT_RETURNTRANSFER, true);
+        $opts->set(CURLOPT_SSL_VERIFYPEER, false);
+        $opts->set(CURLOPT_VERBOSE, false);
+        $agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.0.3705; .NET CLR 1.1.4322)';
+        $opts->set(CURLOPT_USERAGENT, $agent);
 
         // Set function to be executed when request will be completed
         $queue->addListener('complete', function (\cURL\Event $event) use ($marketName, $endpoint, $stake) {
