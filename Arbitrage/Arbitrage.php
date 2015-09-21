@@ -121,12 +121,12 @@ class Arbitrage
     {
         $updatedCount = count($this->updated);
 
-        $dateLength = $this->getMaxLength($this->updated, 'date', 4, function($item, $property, $args = []) {
+        $dateLength = $this->getMaxLength($this->updated, 'date', 11, function($item, $property, $args = []) {
             return $item->$property->format('d/m/Y H:i');
         });
-        $teamALength = $this->getMaxLength($this->updated, 'teamA', 4);
-        $teamBLength = $this->getMaxLength($this->updated, 'teamB', 4);
-        $marketLength = $this->getMaxLength($this->updated, 'market', 4);
+        $teamALength = $this->getMaxLength($this->updated, 'teamA', 6);
+        $teamBLength = $this->getMaxLength($this->updated, 'teamB', 6);
+        $marketLength = $this->getMaxLength($this->updated, 'market', 6);
 
         $callbackA = function ($item, $property, $args = []) {
             return $item->outcomeA->$property;
@@ -135,31 +135,83 @@ class Arbitrage
             return $item->outcomeB->$property;
         };
 
-        $stakeALength = $this->getMaxLength($this->updated, 'stake', 4, $callbackA);
-        $oddsALength = $this->getMaxLength($this->updated, 'odds', 4, $callbackA);
-        $stakeBLength = $this->getMaxLength($this->updated, 'stake', 4, $callbackB);
-        $oddsBLength = $this->getMaxLength($this->updated, 'odds', 4, $callbackB);
+        $profitCallbackA = function ($item, $property, $args = []) {
+            return $item->outcomeA->profit . ' -> ' . $item->outcomeA->maxProfit;
+        };
+        $profitCallbackB = function ($item, $property, $args = []) {
+            return $item->outcomeB->profit . ' -> ' . $item->outcomeB->maxProfit;
+        };
+
+        $stakeCallbackA = function ($item, $property, $args = []) {
+            return $item->outcomeA->minStake . ' - ' . $item->outcomeA->stake . ' - ' . $item->outcomeA->maxStake;
+        };
+        $stakeCallbackB = function ($item, $property, $args = []) {
+            return $item->outcomeB->minStake . ' - ' . $item->outcomeB->stake . ' - ' . $item->outcomeB->maxStake;
+        };
+
+        $stakeALength = $this->getMaxLength($this->updated, 'stake', 29, $stakeCallbackA);
+        $stakeBLength = $this->getMaxLength($this->updated, 'stake', 29, $stakeCallbackB);
+        $profitALength = $this->getMaxLength($this->updated, 'profit', 24, $profitCallbackA);
+        $profitBLength = $this->getMaxLength($this->updated, 'profit', 24, $profitCallbackB);
+        $oddsALength = $this->getMaxLength($this->updated, 'odds', 11, $callbackA);
+        $oddsBLength = $this->getMaxLength($this->updated, 'odds', 11, $callbackB);
+
+
         $lines = [];
         $head = true;
 
+        $headSeparator = '';
         foreach ($this->updated as $updated) {
             $cols = [];
             $cols[] = $this->padToLength($updated->date->format('d/m/Y H:i'), $dateLength);
             $cols[] = $this->padToLength($updated->teamA, $teamALength);
             $cols[] = $this->padToLength($updated->teamB, $teamBLength);
             $cols[] = $this->padToLength($updated->market, $marketLength);
-            $cols[] = $this->padToLength($updated->outcomeA->stake, $stakeALength);
-            $cols[] = $this->padToLength($updated->outcomeB->stake, $stakeBLength);
+
+            $cols[] = $this->padToLength(
+                $updated->outcomeA->minStake . ' - ' . $updated->outcomeA->stake . ' - ' . $updated->outcomeA->maxStake,
+                $stakeALength);
+
+            $cols[] = $this->padToLength(
+                $updated->outcomeB->minStake . ' - ' . $updated->outcomeB->stake . ' - ' . $updated->outcomeB->maxStake,
+                $stakeBLength);
+
+            $cols[] = $this->padToLength(
+                $updated->outcomeA->profit . ' -> ' . $updated->outcomeA->maxProfit,
+                $profitALength);
+
+            $cols[] = $this->padToLength(
+                $updated->outcomeB->profit . ' -> ' . $updated->outcomeB->maxProfit,
+                $profitBLength);
+
             $cols[] = $this->padToLength($updated->outcomeA->odds, $oddsALength);
             $cols[] = $this->padToLength($updated->outcomeB->odds, $oddsBLength);
 
-            $line = '| ' . implode(' | ', $cols) . ' |';
             if ($head === true) {
+                $headSeparator = '+';
+                foreach ($cols as $col) {
+                    $len = strlen($col);
+                    $headSeparator .= str_repeat('-', $len + 2);
+                    $headSeparator .= '+';
+                }
+                $lines[] = $headSeparator;
+                $headCols[] = $this->padToLength('Date & Time', $dateLength);
+                $headCols[] = $this->padToLength('Team A', $teamALength);
+                $headCols[] = $this->padToLength('Team B', $teamBLength);
+                $headCols[] = $this->padToLength('Market', $marketLength);
+                $headCols[] = $this->padToLength('Team A stake (min / eq / max)', $stakeALength);
+                $headCols[] = $this->padToLength('Team B stake (min / eq / max)', $stakeBLength);
+                $headCols[] = $this->padToLength('Team A profit (eq / max)', $profitALength);
+                $headCols[] = $this->padToLength('Team B profit (eq / max)', $profitBLength);
+                $headCols[] = $this->padToLength('Team A odds', $oddsALength);
+                $headCols[] = $this->padToLength('Team B odds', $oddsBLength);
 
                 $head = false;
             }
+            $line = '| ' . implode(' | ', $cols) . ' |';
             $lines[] = $line;
         }
+        $lines[] = $headSeparator;
 
         $updated = implode(PHP_EOL, $lines);
 
