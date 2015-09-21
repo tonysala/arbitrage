@@ -121,8 +121,8 @@ class Arbitrage
     {
         $updatedCount = count($this->updated);
 
-        $dateLength = $this->getMaxLength($this->updated, 'date', 4, function(\DateTime $item, $property, $args = []) {
-            return $item->format('d/m/Y H:i');
+        $dateLength = $this->getMaxLength($this->updated, 'date', 4, function($item, $property, $args = []) {
+            return $item->$property->format('d/m/Y H:i');
         });
         $teamALength = $this->getMaxLength($this->updated, 'teamA', 4);
         $teamBLength = $this->getMaxLength($this->updated, 'teamB', 4);
