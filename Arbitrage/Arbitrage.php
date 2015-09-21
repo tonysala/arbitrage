@@ -41,7 +41,6 @@ class Arbitrage
 
         // Set function to be executed when request will be completed
         $queue->addListener('complete', function (\cURL\Event $event) use ($marketName, $endpoint, $stake) {
-            dd($event);
             $response = $event->response;
             $html = $response->getContent(); // Returns content of response
 
@@ -63,7 +62,6 @@ class Arbitrage
                     $this->matches[] = $match;
                 }
             }
-
         });
 
         foreach ($this->endpoints as $marketName => $endpoint) {
