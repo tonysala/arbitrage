@@ -21,7 +21,7 @@ class Match
     public $teamB;
 
     /**
-     * @var DateTime $date
+     * @var \DateTime $date
      */
     public $date;
 
@@ -84,7 +84,7 @@ class Match
         $this->teamB = $teamB;
     }
 
-    public function setDate(DateTime $date)
+    public function setDate(\DateTime $date)
     {
         $this->date = $date;
     }
