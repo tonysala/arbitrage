@@ -27,7 +27,6 @@ class Market
         $this->name = end($urlPieces);
 
         $stmt = Arbitrage::$pdo->prepare('SELECT id FROM markets WHERE url = :market_url');
-        $stmt->bindParam(':market_name', $marketName);
         $stmt->bindParam(':market_url', $marketUrl);
         $stmt->execute();
         $id = $stmt->fetchColumn(0);
