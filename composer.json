@@ -3,7 +3,7 @@
     "description": "Arbitrage library for finding arbitrage opportunities in betting",
     "type": "library",
     "require": {
-        "stil/curl-easy": "dev-master"
+        "stil/curl-easy": "^1.1"
     },
     "license": "MIT",
     "authors": [
