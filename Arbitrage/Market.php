@@ -19,7 +19,7 @@ class Market
     /**
      * @var \DateTime $date
      */
-    protected $date;
+    private $currentDate;
 
     public function __construct($marketName, $marketUrl)
     {
@@ -114,8 +114,9 @@ class Market
                 // Match is live, ignore
                 return false;
             }
-            $this->date->setTime((int)$hour, (int)$min, 0);
-            $match->setDate($this->date);
+            $this->currentDate->setTime((int)$hour, (int)$min, 0);
+            print "$hour:$min {$this->currentData->format('H:i')} $teamA v $teamB\n";
+            $match->setDate($this->currentDate);
             $match->setLink($link);
             if ($match->isArbitrable() && $match->isPreMatch()) {
                 return $match;
@@ -134,6 +135,6 @@ class Market
 
     public function changeDate($date)
     {
-        $this->date = $date;
+        $this->currentDate = $date;
     }
 }
