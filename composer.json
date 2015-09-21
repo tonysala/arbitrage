@@ -1,0 +1,22 @@
+{
+    "name": "tonysala/arbitrage",
+    "description": "Arbitrage library for finding arbitrage opportunities in betting",
+    "type": "library",
+    "require": {
+        "stil/curl-easy": "dev-master"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tony Sala",
+            "email": "tony@hallnet.co.uk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "version": "0.0.1",
+    "autoload": {
+        "psr-4": {
+            "Arbitrage\\": ""
+        }
+    }
+}
