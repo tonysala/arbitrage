@@ -219,13 +219,6 @@ class Arbitrage
         $updated = implode(PHP_EOL, $lines);
 
         if ($updatedCount > 0) {
-            // To send HTML mail, the Content-type header must be set
-            $headers = 'MIME-Version: 1.0' . "\r\n";
-            $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-
-            // Additional headers
-            $headers .= 'From: localhost <localhost>' . "\r\n";
-
             $toEmail = 'tony@hallnet.co.uk';
             $subject = "$updatedCount Arbitrage opportunities ({$this->updated[0]->percent}%)";
             $message = "<span style='font-family: Monaco, \"Lucida Console\", monospace; font-size:12px'>";
@@ -244,7 +237,18 @@ class Arbitrage
             $message = preg_replace('/\n/', "<br>\n", $message);
             $message = preg_replace('/ /', '&nbsp;', $message);
 
-            mail($toEmail, $subject, $message, $headers);
+            $email = new \PHPMailer;
+            $email->From = $toEmail;
+            $email->FromName = 'arbs';
+            $email->Subject = $subject;
+            $email->Body = $message;
+            $email->isHTML(true);
+            $email->AddAddress($toEmail);
+            file_put_contents(__DIR__ . '/output.txt', $updated);
+
+            $email->AddAttachment(__DIR__ . '/output.txt', 'output.txt');
+
+            return $email->Send();
         }
     }
 
