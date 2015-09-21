@@ -114,9 +114,9 @@ class Market
                 // Match is live, ignore
                 return false;
             }
-            $this->currentDate->setTime((int)$hour, (int)$min, 0);
-//            print "$hour:$min {$this->currentDate->format('H:i')} $teamA v $teamB\n";
-            $match->setDate($this->currentDate);
+            $newDate = clone $this->currentDate;
+            $newDate->setTime((int)$hour, (int)$min, 0);
+            $match->setDate($newDate);
             $match->setLink($link);
             if ($match->isArbitrable() && $match->isPreMatch()) {
                 return $match;
@@ -125,7 +125,7 @@ class Market
             $col = $cols->item(0);
             $dateString = $col->nodeValue;
             if (preg_match('/^[a-z]+ ([0-9]{1,2})[a-z]{2} ([a-z]+) ([0-9]{4})/i', $dateString, $datePieces)) {
-                $date = new \DateTime(null, new \DateTimeZone('Europe/London'));
+                $date = new \DateTime;
                 $year = $datePieces[3];
                 $month = date('m', strtotime($datePieces[2]));
                 $day = $datePieces[1];
@@ -137,7 +137,7 @@ class Market
         return false;
     }
 
-    public function changeDate($date)
+    public function changeDate(\DateTime $date)
     {
         $this->currentDate = $date;
     }
