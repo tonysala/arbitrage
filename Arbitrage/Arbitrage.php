@@ -40,7 +40,8 @@ class Arbitrage
         $opts->set(CURLOPT_USERAGENT, $agent);
 
         // Set function to be executed when request will be completed
-        $queue->addListener('complete', function (\cURL\Event $event) use ($marketName, $endpoint, $stake) {
+        $queue->addListener('complete', function (\cURL\Event $event) use ($endpoint, $stake) {
+            $marketName = array_search($endpoint, $this->endpoints);
             $response = $event->response;
             $html = $response->getContent(); // Returns content of response
 

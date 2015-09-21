@@ -23,6 +23,9 @@ class Market
 
     public function __construct($marketName, $marketUrl)
     {
+        $this->name = $marketName;
+        $this->url = $marketUrl;
+
         $stmt = Arbitrage::$pdo->prepare('SELECT id FROM markets WHERE name = :market_name AND url = :market_url');
         $stmt->bindParam(':market_name', $marketName);
         $stmt->bindParam(':market_url', $marketUrl);
@@ -38,8 +41,6 @@ class Market
         }
 
         $this->id = $id;
-        $this->url = $marketUrl;
-        $this->name = $marketName;
     }
 
     public function setHtml($html = '')
