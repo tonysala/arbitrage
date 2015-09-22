@@ -17,6 +17,8 @@ class Arbitrage
 
     public static $markets = [];
 
+    public static $callbackArgs = [];
+
     public function __construct($dbString = '', $dbUser = '', $dbPass = '')
     {
         self::$pdo = new \PDO($dbString, $dbUser, $dbPass);
@@ -24,11 +26,12 @@ class Arbitrage
 
     public function run($stake = 100)
     {
-        $marketName = '';
-        $endpoint = '';
+        Arbitrage::$callbackArgs = [];
 
         // Init queue of requests
         $queue = new RequestsQueue;
+
+//        $callbackArgs = [];
 
         // Set default options for all requests in queue
         $opts = $queue->getDefaultOptions();
@@ -40,20 +43,20 @@ class Arbitrage
         $opts->set(CURLOPT_USERAGENT, $agent);
 
         // Set function to be executed when request will be completed
-        $queue->addListener('complete', function (\cURL\Event $event) use ($endpoint, $stake) {
-            $marketName = array_search($endpoint, $this->endpoints);
+        $queue->addListener('complete', function (\cURL\Event $event) use ($stake) {
+            $args = Arbitrage::$callbackArgs[$event->request->getUID()];
             $response = $event->response;
             $html = $response->getContent(); // Returns content of response
 
-            $market = new Market($marketName, $endpoint);
+            $market = new Market($args['marketName'], $args['endpoint']);
 
             $market->stake = $stake;
 
             $market->setHtml($html);
             $market->loadDOM();
 
-            self::$markets[$marketName] = $market;
-            foreach (self::$markets[$marketName]->rows as $row) {
+            self::$markets[$args['marketName']] = $market;
+            foreach (self::$markets[$args['marketName']]->rows as $row) {
 
                 $match = $market->getMatchFromRow($row);
                 if ($match !== false) {
@@ -67,6 +70,10 @@ class Arbitrage
 
         foreach ($this->endpoints as $marketName => $endpoint) {
             $request = new \cURL\Request($endpoint);
+            Arbitrage::$callbackArgs[$request->getUID()] = [
+                'marketName' => $marketName,
+                'endpoint' => $endpoint
+            ];
             // Add request to queue
             $queue->attach($request);
         }
@@ -134,35 +141,30 @@ class Arbitrage
         $teamALength = $this->getMaxLength($this->matches, 'teamA', 6);
         $teamBLength = $this->getMaxLength($this->matches, 'teamB', 6);
         $marketLength = $this->getMaxLength($this->matches, 'market', 6);
-
-        $callbackA = function ($item, $property, $args = []) {
-            return $item->outcomeA->$property;
-        };
-        $callbackB = function ($item, $property, $args = []) {
-            return $item->outcomeB->$property;
-        };
-
-        $profitCallbackA = function ($item, $property, $args = []) {
-            return $item->outcomeA->profit . ' -> ' . $item->outcomeA->maxProfit;
-        };
-        $profitCallbackB = function ($item, $property, $args = []) {
-            return $item->outcomeB->profit . ' -> ' . $item->outcomeB->maxProfit;
-        };
-
         $stakeCallbackA = function ($item, $property, $args = []) {
             return $item->outcomeA->minStake . ' - ' . $item->outcomeA->stake . ' - ' . $item->outcomeA->maxStake;
         };
         $stakeCallbackB = function ($item, $property, $args = []) {
             return $item->outcomeB->minStake . ' - ' . $item->outcomeB->stake . ' - ' . $item->outcomeB->maxStake;
         };
-
-        $stakeALength = $this->getMaxLength($this->matches, 'stake', 29, $stakeCallbackA);
-        $stakeBLength = $this->getMaxLength($this->matches, 'stake', 29, $stakeCallbackB);
-        $profitALength = $this->getMaxLength($this->matches, 'profit', 24, $profitCallbackA);
-        $profitBLength = $this->getMaxLength($this->matches, 'profit', 24, $profitCallbackB);
-        $oddsALength = $this->getMaxLength($this->matches, 'odds', 11, $callbackA);
-        $oddsBLength = $this->getMaxLength($this->matches, 'odds', 11, $callbackB);
-
+        $stakeALength = $this->getMaxLength($this->matches, 'stake', 32, $stakeCallbackA);
+        $stakeBLength = $this->getMaxLength($this->matches, 'stake', 32, $stakeCallbackB);
+        $profitCallbackA = function ($item, $property, $args = []) {
+            return $item->outcomeA->profit . ' -> ' . $item->outcomeA->maxProfit;
+        };
+        $profitCallbackB = function ($item, $property, $args = []) {
+            return $item->outcomeB->profit . ' -> ' . $item->outcomeB->maxProfit;
+        };
+        $profitALength = $this->getMaxLength($this->matches, 'profit', 27, $profitCallbackA);
+        $profitBLength = $this->getMaxLength($this->matches, 'profit', 27, $profitCallbackB);
+        $callbackA = function ($item, $property, $args = []) {
+            return $item->outcomeA->$property;
+        };
+        $callbackB = function ($item, $property, $args = []) {
+            return $item->outcomeB->$property;
+        };
+        $oddsALength = $this->getMaxLength($this->matches, 'odds', 14, $callbackA);
+        $oddsBLength = $this->getMaxLength($this->matches, 'odds', 14, $callbackB);
 
         $lines = [];
         $head = true;
@@ -174,25 +176,21 @@ class Arbitrage
             $cols[] = $this->padToLength($matches->teamA, $teamALength);
             $cols[] = $this->padToLength($matches->teamB, $teamBLength);
             $cols[] = $this->padToLength($matches->market, $marketLength);
-
             $cols[] = $this->padToLength(
                 $matches->outcomeA->minStake . ' - ' . $matches->outcomeA->stake . ' - ' . $matches->outcomeA->maxStake,
                 $stakeALength);
-
             $cols[] = $this->padToLength(
                 $matches->outcomeB->minStake . ' - ' . $matches->outcomeB->stake . ' - ' . $matches->outcomeB->maxStake,
                 $stakeBLength);
-
             $cols[] = $this->padToLength(
                 $matches->outcomeA->profit . ' -> ' . $matches->outcomeA->maxProfit,
                 $profitALength);
-
             $cols[] = $this->padToLength(
                 $matches->outcomeB->profit . ' -> ' . $matches->outcomeB->maxProfit,
                 $profitBLength);
-
             $cols[] = $this->padToLength($matches->outcomeA->odds, $oddsALength);
             $cols[] = $this->padToLength($matches->outcomeB->odds, $oddsBLength);
+            $cols[] = '<a href="'.$matches->link.'">link</a>';
 
             if ($head === true) {
                 $headSeparator = '+';
@@ -206,12 +204,13 @@ class Arbitrage
                 $headCols[] = $this->padToLength('Team A', $teamALength);
                 $headCols[] = $this->padToLength('Team B', $teamBLength);
                 $headCols[] = $this->padToLength('Market', $marketLength);
-                $headCols[] = $this->padToLength('Team A stake (min / eq / max)', $stakeALength);
-                $headCols[] = $this->padToLength('Team B stake (min / eq / max)', $stakeBLength);
-                $headCols[] = $this->padToLength('Team A profit (eq / max)', $profitALength);
-                $headCols[] = $this->padToLength('Team B profit (eq / max)', $profitBLength);
-                $headCols[] = $this->padToLength('Team A odds', $oddsALength);
-                $headCols[] = $this->padToLength('Team B odds', $oddsBLength);
+                $headCols[] = $this->padToLength('Outcome A stake (min / eq / max)', $stakeALength);
+                $headCols[] = $this->padToLength('Outcome B stake (min / eq / max)', $stakeBLength);
+                $headCols[] = $this->padToLength('Outcome A profit (eq / max)', $profitALength);
+                $headCols[] = $this->padToLength('Outcome B profit (eq / max)', $profitBLength);
+                $headCols[] = $this->padToLength('Outcome A odds', $oddsALength);
+                $headCols[] = $this->padToLength('Outcome B odds', $oddsBLength);
+                $headCols[] = 'Link';
                 $headLine = '| ' . implode(' | ', $headCols) . ' |';
                 $lines[] = $headLine;
                 $lines[] = $headSeparator;
@@ -251,9 +250,12 @@ class Arbitrage
             $email->Body = $message;
             $email->isHTML(true);
             $email->AddAddress($toEmail);
-            file_put_contents(__DIR__ . '/output.txt', $matches);
 
-            $email->AddAttachment(__DIR__ . '/output.txt', 'output.txt');
+            $matches = preg_replace('/\n/', "<br>\n", $matches);
+            $matches = preg_replace('/ /', '&nbsp;', $matches);
+            file_put_contents(__DIR__ . '/output.html', $matches);
+
+            $email->AddAttachment(__DIR__ . '/output.html', 'output.html');
 
             return $email->Send();
         }

@@ -72,6 +72,10 @@ class Market
         }
     }
 
+    /**
+     * @param \DOMNode $row
+     * @return Match | bool
+     */
     public function getMatchFromRow(\DOMNode $row)
     {
         /**

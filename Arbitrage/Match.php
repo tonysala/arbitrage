@@ -91,13 +91,13 @@ class Match
 
     public function setTime($hour, $min = 0, $sec = 0)
     {
-        print $this->teamA . $hour . ':' . $min .PHP_EOL;
+        print $this->teamA . $hour . ':' . $min . PHP_EOL;
         $this->date->setTime($hour, $min, $sec);
     }
 
     public function setLink($link)
     {
-        $this->link = "<a href='http://www.oddschecker.com{$link}'>{$link}</a>";
+        $this->link = "http://www.oddschecker.com{$link}";
     }
 
     public function isPreMatch()
