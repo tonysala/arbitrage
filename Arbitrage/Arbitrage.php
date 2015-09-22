@@ -76,13 +76,13 @@ class Arbitrage
             $queue->socketSelect();
         }
 
-        return $this->updated;
+        return $this->matches;
     }
 
     public function sortByPercentage()
     {
-        if (count($this->updated)) {
-            usort($this->updated, function (Match $a, Match $b) {
+        if (count($this->matches)) {
+            usort($this->matches, function (Match $a, Match $b) {
                 if ($a->percent === $b->percent) {
                     return 0;
                 } elseif ($a->percent < $b->percent) {
@@ -96,8 +96,8 @@ class Arbitrage
 
     public function sortByPositiveChange()
     {
-        if (count($this->updated)) {
-            usort($this->updated, function (Match $a, Match $b) {
+        if (count($this->matches)) {
+            usort($this->matches, function (Match $a, Match $b) {
                 if ($a->percentChange === $b->percentChange) {
                     return 0;
                 } elseif ($a->percentChange < $b->percentChange) {
@@ -111,8 +111,8 @@ class Arbitrage
 
     public function sortByNegativeChange()
     {
-        if (count($this->updated)) {
-            usort($this->updated, function (Match $a, Match $b) {
+        if (count($this->matches)) {
+            usort($this->matches, function (Match $a, Match $b) {
                 if ($a->percentChange === $b->percentChange) {
                     return 0;
                 } elseif ($a->percentChange < $b->percentChange) {
