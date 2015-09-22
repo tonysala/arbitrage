@@ -15,23 +15,40 @@ class Arbitrage
 
     public $updated = [];
 
+    public $loggedIn = false;
+
     public static $markets = [];
 
     public static $callbackArgs = [];
+
+    protected $email;
+
+    protected $password;
+
+    protected $redir = 'myoddschecker/login';
+
+    protected $remember;
 
     public function __construct($dbString = '', $dbUser = '', $dbPass = '')
     {
         self::$pdo = new \PDO($dbString, $dbUser, $dbPass);
     }
 
-    public function run($stake = 100)
+    public function isLoggedIn()
     {
-        Arbitrage::$callbackArgs = [];
+        $headers = get_headers('https://www.oddschecker.com/myoddschecker/profile', 1);
+        preg_match('/([0-9]{3})/', $headers[0], $code);
+        if ($code[1] !== '200') {
+            $this->loggedIn = true;
+        } else {
+            $this->loggedIn = false;
+        }
+        return $this->loggedIn;
+    }
 
-        // Init queue of requests
+    public function login($callback = null)
+    {
         $queue = new RequestsQueue;
-
-//        $callbackArgs = [];
 
         // Set default options for all requests in queue
         $opts = $queue->getDefaultOptions();
@@ -42,6 +59,62 @@ class Arbitrage
         $agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.0.3705; .NET CLR 1.1.4322)';
         $opts->set(CURLOPT_USERAGENT, $agent);
 
+        $cookieFile = storage_path() . '/authCookie';
+        if (!file_exists($cookieFile)) {
+            touch($cookieFile);
+        }
+        $opts->set(CURLOPT_COOKIEJAR, $cookieFile);
+        $opts->set(CURLOPT_COOKIEFILE, $cookieFile);
+
+        $fields = [
+            'email' => $this->email,
+            'password' => $this->password,
+            'remember-me' => $this->remember
+        ];
+
+        $fieldsString = http_build_query($fields);
+
+        $opts->set(CURLOPT_POST, count($fields));
+        $opts->set(CURLOPT_POSTFIELDS, $fieldsString);
+
+        // Set function to be executed when request will be completed
+        if (is_callable($callback)) {
+            $queue->addListener('complete', $callback);
+        }
+
+        $request = new \cURL\Request('https://www.oddschecker.com/myoddschecker/login');
+        $queue->attach($request);
+
+        // Execute queue
+        while ($queue->socketPerform()) {
+            $queue->socketSelect();
+        }
+
+    }
+
+    public function run($stake = 100)
+    {
+        Arbitrage::$callbackArgs = [];
+
+        // Init queue of requests
+        $queue = new RequestsQueue;
+
+        // Set default options for all requests in queue
+        $opts = $queue->getDefaultOptions();
+        $opts->set(CURLOPT_TIMEOUT, 5);
+        $opts->set(CURLOPT_RETURNTRANSFER, true);
+        $opts->set(CURLOPT_SSL_VERIFYPEER, false);
+        $opts->set(CURLOPT_VERBOSE, false);
+        $agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.0.3705; .NET CLR 1.1.4322)';
+        $opts->set(CURLOPT_USERAGENT, $agent);
+
+        $cookieFile = storage_path() . '/authCookie';
+        if (!file_exists($cookieFile)) {
+            die("doesn't exist");
+        }
+        $opts->set(CURLOPT_COOKIEJAR, $cookieFile);
+        $opts->set(CURLOPT_COOKIEFILE, $cookieFile);
+
         // Set function to be executed when request will be completed
         $queue->addListener('complete', function (\cURL\Event $event) use ($stake) {
             $args = Arbitrage::$callbackArgs[$event->request->getUID()];
@@ -51,22 +124,19 @@ class Arbitrage
             $market = new Market($args['marketName'], $args['endpoint']);
 
             $market->stake = $stake;
-
             $market->setHtml($html);
             $market->loadDOM();
 
             Arbitrage::$markets[$args['marketName']] = $market;
-            if (!is_array(Arbitrage::$markets[$args['marketName']]->rows)) {
-                return;
-            }
-            foreach (Arbitrage::$markets[$args['marketName']]->rows as $row) {
-
-                $match = $market->getMatchFromRow($row);
-                if ($match !== false) {
-                    if ($match->checkPriceShift() === true) {
-                        $this->updated[] = $match;
+            if (Arbitrage::$markets[$args['marketName']]->rows instanceof \DOMNodeList) {
+                foreach (Arbitrage::$markets[$args['marketName']]->rows as $row) {
+                    $match = $market->getMatchFromRow($row);
+                    if ($match !== false) {
+                        if ($match->checkPriceShift() === true) {
+                            $this->updated[] = $match;
+                        }
+                        $this->matches[] = $match;
                     }
-                    $this->matches[] = $match;
                 }
             }
         });
@@ -141,6 +211,7 @@ class Arbitrage
         $dateLength = $this->getMaxLength($this->matches, 'date', 11, function($item, $property, $args = []) {
             return $item->$property->format('d/m/Y H:i');
         });
+        $percLength = $this->getMaxLength($this->matches, 'percent', 7);
         $teamALength = $this->getMaxLength($this->matches, 'teamA', 6);
         $teamBLength = $this->getMaxLength($this->matches, 'teamB', 6);
         $marketLength = $this->getMaxLength($this->matches, 'market', 6);
@@ -176,6 +247,7 @@ class Arbitrage
         foreach ($this->matches as $matches) {
             $cols = [];
             $cols[] = $this->padToLength($matches->date->format('d/m/Y H:i'), $dateLength);
+            $cols[] = $this->padToLength($matches->percent, $percLength);
             $cols[] = $this->padToLength($matches->teamA, $teamALength);
             $cols[] = $this->padToLength($matches->teamB, $teamBLength);
             $cols[] = $this->padToLength($matches->market, $marketLength);
@@ -196,14 +268,9 @@ class Arbitrage
             $cols[] = '<a href="'.$matches->link.'">link</a>';
 
             if ($head === true) {
-                $headSeparator = '+';
-                foreach ($cols as $col) {
-                    $len = strlen($col);
-                    $headSeparator .= str_repeat('-', $len + 2);
-                    $headSeparator .= '+';
-                }
-                $lines[] = $headSeparator;
+
                 $headCols[] = $this->padToLength('Date & Time', $dateLength);
+                $headCols[] = $this->padToLength('Percent', $percLength);
                 $headCols[] = $this->padToLength('Team A', $teamALength);
                 $headCols[] = $this->padToLength('Team B', $teamBLength);
                 $headCols[] = $this->padToLength('Market', $marketLength);
@@ -214,8 +281,18 @@ class Arbitrage
                 $headCols[] = $this->padToLength('Outcome A odds', $oddsALength);
                 $headCols[] = $this->padToLength('Outcome B odds', $oddsBLength);
                 $headCols[] = 'Link';
+
+                $headSeparator = '+';
+                foreach ($headCols as $col) {
+                    $len = strlen($col);
+                    $headSeparator .= str_repeat('-', $len + 2);
+                    $headSeparator .= '+';
+                }
+                $lines[] = $headSeparator;
+
                 $headLine = '| ' . implode(' | ', $headCols) . ' |';
                 $lines[] = $headLine;
+
                 $lines[] = $headSeparator;
 
                 $head = false;
@@ -244,7 +321,7 @@ class Arbitrage
             $message .= PHP_EOL;
 
             $message = preg_replace('/\n/', "<br>\n", $message);
-            $message = preg_replace('/ /', '&nbsp;', $message);
+            $message = preg_replace('/  /', '&nbsp;&nbsp;', $message);
 
             $email = new \PHPMailer;
             $email->From = $toEmail;
@@ -255,7 +332,7 @@ class Arbitrage
             $email->AddAddress($toEmail);
 
             $matches = preg_replace('/\n/', "<br>\n", $matches);
-            $matches = preg_replace('/ /', '&nbsp;', $matches);
+            $matches = preg_replace('/  /', '&nbsp;&nbsp;', $matches);
             file_put_contents(__DIR__ . '/output.html', $matches);
 
             $email->AddAttachment(__DIR__ . '/output.html', 'output.html');
@@ -302,5 +379,53 @@ class Arbitrage
         $message .= $errorMessage;
 
         mail($toEmail, $subject, $message);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getEmail()
+    {
+        return $this->email;
+    }
+
+    /**
+     * @param mixed $email
+     */
+    public function setEmail($email)
+    {
+        $this->email = $email;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPassword()
+    {
+        return $this->password;
+    }
+
+    /**
+     * @param mixed $password
+     */
+    public function setPassword($password)
+    {
+        $this->password = $password;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRemember()
+    {
+        return $this->remember;
+    }
+
+    /**
+     * @param mixed $remember
+     */
+    public function setRemember($remember = true)
+    {
+        $this->remember = $remember;
     }
 }

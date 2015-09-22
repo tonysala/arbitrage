@@ -102,7 +102,17 @@ class Match
 
     public function isPreMatch()
     {
-        if ($this->date < new \DateTime('now', new \DateTimeZone('Europe/London'))) {
+//        print '<pre>' . $this->date->format('d H:i (e)');
+//        print ' - ';
+//        print (new \DateTime('now', new \DateTimeZone('Europe/London')))->format('d H:i (e)');
+//        print '  <b>' . (int)($this->date < (new \DateTime('now', new \DateTimeZone('Europe/London')))) . '</b>';
+//        print '  ' . $this->teamA . ' v '.$this->teamB;
+//        print '<pre>';
+//        ob_end_flush();
+//        @ob_flush();
+//        flush();
+//        ob_start();
+        if ($this->date < (new \DateTime('now', new \DateTimeZone('Europe/London')))) {
             return false;
         }
         return true;

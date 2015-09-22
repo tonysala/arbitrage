@@ -63,13 +63,14 @@ class Market
             libxml_clear_errors();
 
             $element = $dom->getElementById('fixtures');
-            $element = $element->getElementsByTagName('tbody')->item(0);
+            if ($element instanceof \DOMElement) {
+                $element = $element->getElementsByTagName('tbody')->item(0);
+                $this->rows = $element->childNodes;
+                return true;
+            }
 
-            $this->rows = $element->childNodes;
-            return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -90,6 +91,7 @@ class Market
             $oddsA = $cols->item(2)->nodeValue;
             $oddsB = $cols->item(3)->nodeValue;
 
+
             preg_match('|(.*?) \(([0-9]+)/([0-9]+)\)$|', $oddsA, $m);
             if (count($m) >= 4) {
                 $oddsA = round(($m[2] / $m[3]) + 1.0, 2);
@@ -106,7 +108,12 @@ class Market
                 return false;
             }
 
-            $link = $cols->item(4)->firstChild->attributes->getNamedItem('href')->nodeValue;
+            $link = $cols->item(4)->firstChild;
+            if ($link instanceof \DOMElement) {
+                $link = $link->attributes->getNamedItem('href')->nodeValue;
+            } else {
+                return false;
+            }
 
             $match = new Match($this->stake, $outcomeA, $outcomeB, $oddsA, $oddsB);
             $match->setTeams($teamA, $teamB);
@@ -129,7 +136,7 @@ class Market
             $col = $cols->item(0);
             $dateString = $col->nodeValue;
             if (preg_match('/^[a-z]+ ([0-9]{1,2})[a-z]{2} ([a-z]+) ([0-9]{4})/i', $dateString, $datePieces)) {
-                $date = new \DateTime;
+                $date = new \DateTime(null, new \DateTimeZone('Europe/London'));
                 $year = $datePieces[3];
                 $month = date('m', strtotime($datePieces[2]));
                 $day = $datePieces[1];
