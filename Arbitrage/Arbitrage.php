@@ -55,8 +55,11 @@ class Arbitrage
             $market->setHtml($html);
             $market->loadDOM();
 
-            self::$markets[$args['marketName']] = $market;
-            foreach (self::$markets[$args['marketName']]->rows as $row) {
+            Arbitrage::$markets[$args['marketName']] = $market;
+            if (!is_array(Arbitrage::$markets[$args['marketName']]->rows)) {
+                return;
+            }
+            foreach (Arbitrage::$markets[$args['marketName']]->rows as $row) {
 
                 $match = $market->getMatchFromRow($row);
                 if ($match !== false) {
