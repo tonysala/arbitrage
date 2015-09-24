@@ -12,7 +12,22 @@ abstract class BookmakerBase
 {
     protected $name;
 
+    protected $endpoint;
+
+    protected $endpointDom;
+
     protected $loginFields = [];
+
+    public function __construct()
+    {
+        $this->endpointDom = new \DOMDocument;
+
+        $curl = $this->request($this->endpoint);
+
+        libxml_use_internal_errors(true);
+        $this->endpointDom->loadHTML($curl['data']);
+        libxml_clear_errors();
+    }
 
     abstract public function login();
 
@@ -46,44 +61,40 @@ abstract class BookmakerBase
         ];
     }
 
-    protected function getCookies()
+    protected function parseCookies()
     {
-        $cookieStr = file_get_contents(storage_path() . 'auth' . $this->name);
-        $cookies = array();
+        $cookieStr = file_get_contents(storage_path() . '/auth' . $this->name);
+        $cookies = [];
 
         $lines = explode("\n", $cookieStr);
 
-        // iterate over lines
         foreach ($lines as $line) {
-            // we only care for valid cookie def lines
             if (isset($line[0]) && substr_count($line, "\t") == 6) {
 
-                // get tokens in an array
                 $tokens = explode("\t", $line);
-
-                // trim the tokens
                 $tokens = array_map('trim', $tokens);
 
-                $cookie = array();
-
-                // Extract the data
-                $cookie['domain'] = $tokens[0];
-                $cookie['flag'] = $tokens[1];
-                $cookie['path'] = $tokens[2];
-                $cookie['secure'] = $tokens[3];
-
-                // Convert date to a readable format
-                $cookie['expiration'] = date('Y-m-d h:i:s', $tokens[4]);
-
-                $cookie['name'] = $tokens[5];
-                $cookie['value'] = $tokens[6];
-
-                // Record the cookie.
-                $cookies[] = $cookie;
+                $cookies[$tokens[5]] = [
+                    'domain' => $tokens[0],
+                    'flag' => $tokens[1],
+                    'path' => $tokens[2],
+                    'secure' => $tokens[3],
+                    'expiration' => date('Y-m-d h:i:s', $tokens[4]),
+                    'name' => $tokens[5],
+                    'value' => $tokens[6]
+                ];
             }
         }
-        dd($cookies);
         return $cookies;
+    }
+
+    public function cookie($name)
+    {
+        $cookies = $this->parseCookies();
+        if (isset($cookies[$name])) {
+            return $cookies[$name];
+        }
+        return null;
     }
 
 }
