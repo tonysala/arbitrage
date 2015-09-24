@@ -1,6 +1,6 @@
 <?php namespace Tronfo\Arbitrage;
 
-class Match
+class Fixture
 {
     /**
      * @var Outcome $outcomeA

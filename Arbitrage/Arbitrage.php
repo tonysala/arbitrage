@@ -9,17 +9,9 @@ class Arbitrage
      */
     public static $pdo;
 
-    protected $endpoints = [];
-
     public $matches = [];
 
-    public $updated = [];
-
-    public $loggedIn = false;
-
     public $markets = [];
-
-    public static $callbackArgs = [];
 
     protected $bookmakers;
 
@@ -36,8 +28,6 @@ class Arbitrage
 
     public function run($stake = 100)
     {
-
-        Arbitrage::$callbackArgs = [];
 
         // Init queue of requests
         $queue = new RequestsQueue;

@@ -12,26 +12,28 @@ abstract class BookmakerBase
 {
     protected $name;
 
+    protected $balance;
+
     protected $endpoint;
 
     protected $endpointDom;
+
+    protected $loadedDoms = [];
 
     protected $loginFields = [];
 
     public function __construct()
     {
-        $this->endpointDom = new \DOMDocument;
-
-        $curl = $this->request($this->endpoint);
-
-        libxml_use_internal_errors(true);
-        $this->endpointDom->loadHTML($curl['data']);
-        libxml_clear_errors();
+        $this->endpointDom = $this->getDom($this->endpoint);
+        // Make alias in $loadedDoms
+        $this->loadedDoms[$this->endpoint] = $this->endpointDom;
     }
 
     abstract public function login();
 
     abstract public function isLoggedIn();
+
+    abstract public function getBalance();
 
     protected function request($endpoint, $data = [])
     {
@@ -59,6 +61,19 @@ abstract class BookmakerBase
             'info' => curl_getinfo($ch),
             'error' => curl_error($ch)
         ];
+    }
+
+    protected function getDom($endpoint)
+    {
+        $dom = new \DOMDocument;
+
+        $curl = $this->request($endpoint);
+
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($curl['data']);
+        libxml_clear_errors();
+
+        return $dom;
     }
 
     protected function parseCookies()
